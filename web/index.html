@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#e9e4da" />
+    <title>Slotwise — Booking desk</title>
+    <link rel="preload" href="/assets/fonts/Fraunces.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Manrope.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="stylesheet" href="/assets/app.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231847d6'/%3E%3Cpath d='M6 22 26 8' stroke='%23fbfaf7' stroke-width='3'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div class="wash" aria-hidden="true"></div>
+    <svg class="grain" aria-hidden="true">
+      <filter id="grain">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch" />
+      </filter>
+      <rect width="100%" height="100%" filter="url(#grain)" />
+    </svg>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/">
+          <span class="mark" aria-hidden="true"></span>
+          <span class="word">Slot<span class="wise">wise</span></span>
+        </a>
+        <p class="kicker">Booking desk</p>
+        <p class="strategy" id="strategy">Reading the lock…</p>
+      </header>
+      <main>
+        <section class="hero">
+          <div>
+            <p class="eyebrow">One room · one row · one lock</p>
+            <h1>One seat.<br /><em>One committed row.</em></h1>
+          </div>
+          <form class="signature" id="email-form">
+            <label for="email">Name on the booking</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              placeholder="ada@example.com"
+              required
+            />
+            <p class="hint" id="email-hint">Saved in this browser. Each click sends its own idempotency key.</p>
+          </form>
+        </section>
+        <p class="lede" id="lede">
+          Pick an hour. The API locks that slot’s row, then writes your seat. The next person in line hears
+          that it is gone.
+        </p>
+        <section class="sheet empty-sheet" id="sheet" aria-live="polite">
+          <div class="empty">
+            <p class="eyebrow">One moment</p>
+            <h2>Opening the book.</h2>
+          </div>
+        </section>
+      </main>
+      <footer>
+        <p>The seat is a row in Postgres. The lock is what makes the second request wait.</p>
+        <p id="foot-strategy"></p>
+      </footer>
+    </div>
+    <noscript>This desk talks to the API from the browser. Enable JavaScript to book a seat.</noscript>
+    <script src="/assets/app.js" type="module"></script>
+  </body>
+</html>
