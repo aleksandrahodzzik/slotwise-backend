@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: slotwise
+      POSTGRES_PASSWORD: slotwise
+      POSTGRES_DB: slotwise
+    ports:
+      - "5432:5432"
+    command: ["postgres", "-c", "max_connections=300"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotwise -d slotwise"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://slotwise:slotwise@db:5432/slotwise
+      BOOKING_STRATEGY: ${BOOKING_STRATEGY:-row_lock}
+      NAIVE_DELAY_MS: ${NAIVE_DELAY_MS:-0}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-50}
+      WEB_DIR: /app/web
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 15s
