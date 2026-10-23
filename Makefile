@@ -1,7 +1,3 @@
-ifeq ($(OS),Windows_NT)
-SHELL := bash
-endif
-
 .PHONY: up down test lint bench seed demo
 
 up:
@@ -12,8 +8,6 @@ down:
 
 test:
 	docker compose up -d db --wait
-	DATABASE_URL=postgresql+asyncpg://slotwise:slotwise@localhost:5432/slotwise \
-	DB_POOL_SIZE=10 DB_MAX_OVERFLOW=60 BOOKING_STRATEGY=row_lock \
 	uv run pytest --cov=slotwise --cov-report=term-missing
 
 lint:

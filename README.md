@@ -23,7 +23,7 @@ sequenceDiagram
 
 ## Quickstart
 
-Docker, [uv](https://docs.astral.sh/uv/), and GNU make. On Windows the Makefile runs in Git Bash.
+Docker, [uv](https://docs.astral.sh/uv/), and GNU make.
 
 ```bash
 make up
