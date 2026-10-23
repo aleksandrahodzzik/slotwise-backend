@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: slotwise
+          POSTGRES_PASSWORD: slotwise
+          POSTGRES_DB: slotwise
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U slotwise -d slotwise"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+asyncpg://slotwise:slotwise@localhost:5432/slotwise
+      DB_POOL_SIZE: "10"
+      DB_MAX_OVERFLOW: "60"
+      BOOKING_STRATEGY: row_lock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src
+      - run: uv run pytest --cov=slotwise --cov-report=term-missing
+      - run: docker build -t slotwise:ci .
