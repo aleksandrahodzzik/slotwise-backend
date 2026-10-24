@@ -193,7 +193,7 @@ function render() {
   strategyEl.textContent = state.strategy ? strategyLabel(state.strategy) : "Desk offline";
   strategyEl.classList.toggle("warn", state.strategy === "naive");
   if (copy[state.strategy]) ledeEl.textContent = copy[state.strategy];
-  footEl.textContent = state.strategy ? `Strategy on this process: ${state.strategy}` : "";
+  footEl.textContent = state.strategy ? `Strategy on this process: ${strategyLabel(state.strategy)}` : "";
   sheet.className = state.mode === "ready" ? "sheet" : "sheet empty-sheet";
   sheet.innerHTML = sheetMarkup();
 }

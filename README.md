@@ -1,6 +1,6 @@
 # Slotwise
 
-[![ci](https://github.com/alexandrahodzzik/slotwise-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/alexandrahodzzik/slotwise-backend/actions/workflows/ci.yml)
+[![ci](https://github.com/aleksandrahodzzik/slotwise-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/aleksandrahodzzik/slotwise-backend/actions/workflows/ci.yml)
 
 Slotwise is the backend of a scheduling desk: rooms have time slots, each slot has a capacity, and a booking takes one seat. Concurrent requests are normal. The API answers 201 or 409 from a PostgreSQL transaction, not from a lock in the Python process. `SELECT … FOR UPDATE` on the slot row makes the second request wait, then read the count the first one committed. A single-page desk at `/` books through that same API.
 

@@ -181,6 +181,7 @@ h1 {
   font-size: clamp(3.3rem, 7.4vw, 6.15rem);
   line-height: 0.9;
   letter-spacing: -0.045em;
+  text-wrap: balance;
   font-variation-settings: "SOFT" 40, "WONK" 1, "opsz" 72, "wght" 560;
 }
 
@@ -501,7 +502,7 @@ footer p { margin: 0; }
   .top { grid-template-columns: 1fr; justify-items: start; gap: 8px; }
   .kicker, .strategy { justify-self: start; text-align: left; }
   .hero { grid-template-columns: 1fr; gap: 22px; }
-  h1 { font-size: clamp(2.7rem, 14vw, 4rem); }
+  h1 { font-size: clamp(2.45rem, 11vw, 3.6rem); }
   .sheet { grid-template-columns: 1fr; }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); }
   .colhead { display: none; }
