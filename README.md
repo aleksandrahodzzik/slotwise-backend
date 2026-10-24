@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/aleksandrahodzzik/slotwise-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/aleksandrahodzzik/slotwise-backend/actions/workflows/ci.yml)
 
-Slotwise is the backend of a scheduling desk: rooms have time slots, each slot has a capacity, and a booking takes one seat. Concurrent requests are normal. The API answers 201 or 409 from a PostgreSQL transaction, not from a lock in the Python process. `SELECT … FOR UPDATE` on the slot row makes the second request wait, then read the count the first one committed. A single-page desk at `/` books through that same API.
+Slotwise will not sell the same seat twice. A booking locks the slot row in PostgreSQL, then inserts. The tests fire 50 concurrent requests at a 3-seat slot and accept exactly three. A deliberately broken strategy, `naive`, exists so the benchmark can count the seats that lock prevents. The desk at `/` books through this API.
 
 Backend originally built at the Codaro Hackathon (Aug 2026, team project, I was the backend developer). This repository is my cleaned-up re-implementation with tests, load testing and CI.
 
@@ -132,4 +132,4 @@ There is no authentication. Anyone who can reach the API can book, and the desk 
 
 ## The desk
 
-`/` is a static page served by FastAPI. No Node build. Fraunces and Manrope are self-hosted under the [SIL Open Font License](web/assets/fonts/OFL.txt). The page creates the demo day through the public API, stores the email in `localStorage`, and sends a new `Idempotency-Key` (`crypto.randomUUID()`) on every click. A 409 is shown on that hour, then availability is fetched again. Full hours stay quiet. Seats you booked in this tab can be cancelled. The footer reads the strategy from `/health`.
+`/` is a static page served by FastAPI. No Node build. Fraunces and Manrope are self-hosted under the [SIL Open Font License](web/assets/fonts/OFL.txt). The page creates the demo day through the public API, stores the email in `localStorage`, and sends a new `Idempotency-Key` (`crypto.randomUUID()`) on every click. A 409 is shown on that hour, then availability is fetched again. Full hours stay quiet. A held seat becomes a numbered slip above the sheet, and it can be released from there. The footer reads the strategy from `/health`.

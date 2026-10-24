@@ -1,6 +1,7 @@
 const emailInput = document.querySelector("#email");
 const emailForm = document.querySelector("#email-form");
 const sheet = document.querySelector("#sheet");
+const passes = document.querySelector("#passes");
 const strategyEl = document.querySelector("#strategy");
 const ledeEl = document.querySelector("#lede");
 const footEl = document.querySelector("#foot-strategy");
@@ -17,6 +18,12 @@ const state = {
   message: "",
 };
 
+const slip = {
+  row_lock: "Held while the slot row was locked.",
+  atomic_update: "Claimed by one conditional update.",
+  naive: "Written by the demo that can oversell.",
+};
+
 const copy = {
   row_lock: "Pick an hour. The API locks that slot’s row, then writes your seat. The next person in line hears that it is gone.",
   atomic_update: "Pick an hour. One conditional update claims a seat only while the count is still under capacity.",
@@ -30,6 +37,7 @@ emailInput.addEventListener("input", () => {
 });
 emailForm.addEventListener("submit", (event) => event.preventDefault());
 sheet.addEventListener("click", onSheetClick);
+passes.addEventListener("click", onSheetClick);
 
 boot();
 
@@ -196,6 +204,23 @@ function render() {
   footEl.textContent = state.strategy ? `Strategy on this process: ${strategyLabel(state.strategy)}` : "";
   sheet.className = state.mode === "ready" ? "sheet" : "sheet empty-sheet";
   sheet.innerHTML = sheetMarkup();
+  renderPasses();
+}
+
+function renderPasses() {
+  const tickets = Object.values(state.mine)
+    .filter((row) => row.status === "confirmed")
+    .sort((a, b) => a.id - b.id);
+  passes.hidden = tickets.length === 0;
+  passes.innerHTML = tickets.map(ticketMarkup).join("");
+}
+
+function ticketMarkup(booking) {
+  const slot = state.slots.find((item) => item.id === booking.slot_id);
+  const when = slot ? `${formatTime(slot.starts_at)}–${formatTime(slot.ends_at)}` : "Held seat";
+  const pending = state.pending === `cancel-${booking.id}`;
+  const number = String(booking.id).padStart(2, "0");
+  return `<article class="pass"><p class="pass-no"><span>No.</span>${number}</p><div><p class="pass-when">${escapeHtml(when)}</p><p class="pass-email" title="${escapeHtml(booking.customer_email)}">${escapeHtml(booking.customer_email)}</p><p class="pass-line">${escapeHtml(slip[state.strategy] || "Held in this tab.")}</p></div><button class="book ghost" type="button" data-cancel="${booking.id}" ${pending ? "disabled" : ""}>${pending ? "Releasing…" : "Release"}</button></article>`;
 }
 
 function sheetMarkup() {
@@ -246,9 +271,9 @@ function slotMarkup(slot, index) {
   const pending = state.pending === slot.id || (mine && state.pending === `cancel-${mine.id}`);
   const note = state.notes[slot.id] ? `<p class="note">${escapeHtml(state.notes[slot.id])}</p>` : "";
   const action = mine
-    ? `<button class="book ghost" type="button" data-cancel="${mine.id}" ${pending ? "disabled" : ""}>${pending ? "Releasing…" : "Cancel"}</button>`
+    ? `<button class="book ghost" type="button" data-cancel="${mine.id}" ${pending ? "disabled" : ""}>${pending ? "Releasing…" : "Release"}</button>`
     : `<button class="book" type="button" data-book="${slot.id}" ${full || pending ? "disabled" : ""}>${pending ? "Holding…" : full ? "Full" : "Book"}</button>`;
-  return `<article class="slot${mine ? " yours" : ""}${full ? " full" : ""}" style="animation-delay:${Math.min(index, 12) * 24}ms"><p class="when">${escapeHtml(formatTime(slot.starts_at))}–${escapeHtml(formatTime(slot.ends_at))}</p><div class="pips">${pips(slot)}<span class="remain">${slot.remaining} open</span>${mine ? '<span class="yours-tag">Yours</span>' : ""}</div>${action}${note}</article>`;
+  return `<article class="slot${mine ? " yours" : ""}${full ? " full" : ""}" style="animation-delay:${Math.min(index, 12) * 24}ms"><p class="when">${escapeHtml(formatTime(slot.starts_at))}–${escapeHtml(formatTime(slot.ends_at))}</p><div class="pips">${pips(slot)}<span class="remain">${slot.remaining} open</span>${mine ? `<span class="yours-tag">No. ${String(mine.id).padStart(2, "0")}</span>` : ""}</div>${action}${note}</article>`;
 }
 
 function pips(slot) {

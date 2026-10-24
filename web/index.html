@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#e9e4da" />
+    <meta
+      name="description"
+      content="A booking desk that locks the slot row in Postgres before it sells the seat."
+    />
     <title>Slotwise — Booking desk</title>
     <link rel="preload" href="/assets/fonts/Fraunces.ttf" as="font" type="font/ttf" crossorigin />
     <link rel="preload" href="/assets/fonts/Manrope.ttf" as="font" type="font/ttf" crossorigin />
@@ -54,6 +58,7 @@
           Pick an hour. The API locks that slot’s row, then writes your seat. The next person in line hears
           that it is gone.
         </p>
+        <div class="passes" id="passes" hidden></div>
         <section class="sheet empty-sheet" id="sheet" aria-live="polite">
           <div class="empty">
             <p class="eyebrow">One moment</p>

@@ -230,6 +230,87 @@ h1 em {
   font-size: 1.05rem;
 }
 
+.passes:not([hidden]) {
+  display: flex;
+  gap: 16px;
+  margin: 0 0 22px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.pass {
+  position: relative;
+  flex: 0 0 min(100%, 460px);
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 18px 16px 8px;
+  background: linear-gradient(180deg, #fffdf9, var(--paper));
+  border: 1px solid rgba(26, 35, 50, 0.06);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.pass::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--good);
+}
+
+.pass-no {
+  margin: 0;
+  padding-right: 8px;
+  border-right: 1px dashed var(--line);
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 2.7rem;
+  line-height: 0.85;
+  letter-spacing: -0.045em;
+  font-variation-settings: "SOFT" 30, "opsz" 72, "wght" 560;
+}
+
+.pass-no span {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.pass-when {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 48, "wght" 560;
+}
+
+.pass > div { min-width: 0; }
+
+.pass .book { white-space: nowrap; }
+
+.pass-email,
+.pass-line {
+  margin: 3px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.pass-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sheet {
   position: relative;
   display: grid;
@@ -415,10 +496,11 @@ h1 em {
 
 .yours-tag {
   color: var(--good);
-  font-size: 0.72rem;
-  font-weight: 750;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 36, "wght" 560;
 }
 
 .note {
@@ -509,6 +591,8 @@ footer p { margin: 0; }
   .slot { grid-template-columns: 1fr auto; }
   .pips { grid-column: 1 / -1; }
   .empty { padding: 40px 24px 48px; }
+  .pass { grid-template-columns: 76px minmax(0, 1fr); }
+  .pass .book { grid-column: 2; justify-self: start; }
   footer { flex-direction: column; }
 }
 
