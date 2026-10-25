@@ -31,7 +31,7 @@ make test
 make bench
 ```
 
-`make up` builds the API, waits until `/health` is green, and serves the desk at <http://localhost:8000>. Press **Open a demo desk** for tomorrow's North studio (Europe/Warsaw, 09:00–17:00, 30-minute slots, 3 seats). `make down` removes the containers and the volume.
+`make up` builds the API, waits until `/health` is green, and serves the desk at <http://localhost:8000>. Press **Open a demo desk** for the next nine days in the North studio (Europe/Warsaw). Weekdays are 10:00–16:00, one hour, three seats. Saturday is 11:00–15:00 and Sunday is 12:00–15:00, two seats. `make down` removes the containers and the volume.
 
 ## curl
 

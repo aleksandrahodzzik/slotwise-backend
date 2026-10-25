@@ -1,4 +1,4 @@
-"""Open tomorrow's North studio on a desk that is already running."""
+"""Open nine days of the North studio on a desk that is already running."""
 
 from __future__ import annotations
 
@@ -22,20 +22,33 @@ def main() -> None:
             return
         created = client.post("/api/v1/resources", json={"name": "North studio", "kind": "room"})
         created.raise_for_status()
+        opened = 0
         tomorrow = (datetime.now(WARSAW) + timedelta(days=1)).date()
-        start = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0, tzinfo=WARSAW)
-        end = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 17, 0, tzinfo=WARSAW)
-        slots = client.post(
-            f"/api/v1/resources/{created.json()['id']}/slots",
-            json={
-                "from": start.isoformat(),
-                "to": end.isoformat(),
-                "duration_minutes": 30,
-                "capacity": 3,
-            },
-        )
-        slots.raise_for_status()
-        print(f"opened {len(slots.json())} slots in the North studio")
+        for offset in range(9):
+            day = tomorrow + timedelta(days=offset)
+            start_hour, end_hour, capacity = _hours(day)
+            start = datetime(day.year, day.month, day.day, start_hour, 0, tzinfo=WARSAW)
+            end = datetime(day.year, day.month, day.day, end_hour, 0, tzinfo=WARSAW)
+            slots = client.post(
+                f"/api/v1/resources/{created.json()['id']}/slots",
+                json={
+                    "from": start.isoformat(),
+                    "to": end.isoformat(),
+                    "duration_minutes": 60,
+                    "capacity": capacity,
+                },
+            )
+            slots.raise_for_status()
+            opened += len(slots.json())
+        print(f"opened {opened} slots in the North studio")
+
+
+def _hours(day) -> tuple[int, int, int]:
+    if day.weekday() == 6:
+        return 12, 15, 2
+    if day.weekday() == 5:
+        return 11, 15, 2
+    return 10, 16, 3
 
 
 if __name__ == "__main__":

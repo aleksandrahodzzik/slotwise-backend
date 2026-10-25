@@ -16,6 +16,7 @@ const state = {
   notes: {},
   pending: null,
   message: "",
+  day: null,
 };
 
 const slip = {
@@ -40,6 +41,7 @@ sheet.addEventListener("click", onSheetClick);
 passes.addEventListener("click", onSheetClick);
 
 boot();
+mountFidget();
 
 async function boot() {
   try {
@@ -95,15 +97,18 @@ async function reviveMine() {
 }
 
 async function onSheetClick(event) {
+  const fill = event.target.closest("[data-fill]");
   const demo = event.target.closest("[data-demo]");
   const room = event.target.closest("[data-room]");
   const book = event.target.closest("[data-book]");
   const cancel = event.target.closest("[data-cancel]");
   try {
+    if (fill) return await fillWeek();
     if (demo) return await openDemo();
     if (room) {
       state.resourceId = Number(room.dataset.room);
       state.notes = {};
+      state.day = null;
       await refresh();
       render();
       return;
@@ -119,28 +124,57 @@ async function onSheetClick(event) {
 
 async function openDemo() {
   state.mode = "creating";
-  state.message = "Setting tomorrow’s hours in the North studio.";
+  state.message = "Setting nine days of hours in the North studio.";
   render();
   try {
     const created = await api("/api/v1/resources", {
       method: "POST",
       body: JSON.stringify({ name: "North studio", kind: "room" }),
     });
-    const window = tomorrowWindow();
-    await api(`/api/v1/resources/${created.body.id}/slots`, {
-      method: "POST",
-      body: JSON.stringify({
-        from: window.from,
-        to: window.to,
-        duration_minutes: 30,
-        capacity: 3,
-      }),
-    });
+    for (const day of weekPlan()) {
+      await api(`/api/v1/resources/${created.body.id}/slots`, {
+        method: "POST",
+        body: JSON.stringify({
+          from: day.from,
+          to: day.to,
+          duration_minutes: 60,
+          capacity: day.capacity,
+        }),
+      });
+    }
     state.resourceId = created.body.id;
     await refresh();
   } catch (error) {
     state.mode = "empty";
     state.message = error.message || "The demo desk could not be opened.";
+  }
+  render();
+}
+
+async function fillWeek() {
+  if (!state.resourceId) return;
+  const present = new Set(state.slots.map((slot) => dayKey(slot.starts_at)));
+  const missing = weekPlan().filter((day) => !present.has(day.key));
+  if (!missing.length) return;
+  state.mode = "creating";
+  state.message = "Adding the missing days.";
+  render();
+  try {
+    for (const day of missing) {
+      await api(`/api/v1/resources/${state.resourceId}/slots`, {
+        method: "POST",
+        body: JSON.stringify({
+          from: day.from,
+          to: day.to,
+          duration_minutes: 60,
+          capacity: day.capacity,
+        }),
+      });
+    }
+    await refresh();
+  } catch (error) {
+    state.mode = state.slots.length ? "ready" : "empty";
+    state.message = error.message || "The missing days could not be opened.";
   }
   render();
 }
@@ -205,6 +239,7 @@ function render() {
   sheet.className = state.mode === "ready" ? "sheet" : "sheet empty-sheet";
   sheet.innerHTML = sheetMarkup();
   renderPasses();
+  paintFidget();
 }
 
 function renderPasses() {
@@ -231,12 +266,23 @@ function sheetMarkup() {
     return `<div class="empty"><p class="eyebrow">No line to Postgres</p><h2>The desk is quiet.</h2><p>${escapeHtml(state.message)}</p></div>`;
   }
   if (state.mode === "empty") {
-    return `<div class="empty"><p class="eyebrow">Nothing on the book</p><h2>The desk is clear.</h2><p>${escapeHtml(state.message || "Open tomorrow in the North studio. Sixteen half hours, three seats in each.")}</p><button class="demo" type="button" data-demo>Open a demo desk</button></div>`;
+    return `<div class="empty"><p class="eyebrow">Nothing on the book</p><h2>The desk is clear.</h2><p>${escapeHtml(state.message || "Open the next nine days in the North studio. Weekdays run on the hour. Saturday and Sunday are shorter.")}</p><button class="demo" type="button" data-demo>Open a demo desk</button></div>`;
   }
   const room = state.resources.find((item) => item.id === state.resourceId) || state.resources[0];
-  const days = groupDays(state.slots);
-  const capacity = state.slots[0] ? state.slots[0].capacity : null;
-  return `<aside class="rail"><p class="index">Desk 01</p>${railRooms(room)}<p class="when-day">${escapeHtml(days[0]?.label || "No hours yet")}</p><p class="seat-line">${capacity ? `${capacity} seats in each hour` : "No hours in this window"}</p><p class="legend"><span><i class="pip taken"></i> Taken</span><span><i class="pip"></i> Open</span></p></aside><div class="hours">${hoursMarkup(days)}</div>`;
+  const chosen = openDay();
+  const visible = chosen ? chosen.slots : [];
+  const capacities = [...new Set(visible.map((slot) => slot.capacity))];
+  const seatLine = !chosen
+    ? "The studio is closed this day."
+    : capacities.length === 1
+      ? `${capacities[0]} seats in each hour`
+      : "Hours change through the day";
+  const when = chosen ? chosen.label : state.day ? labelForKey(state.day) : "No hours yet";
+  const present = new Set(state.slots.map((slot) => dayKey(slot.starts_at)));
+  const missing = weekPlan().some((day) => !present.has(day.key));
+  const fill = missing ? `<button class="demo" type="button" data-fill>Add the missing days</button>` : "";
+  const hours = chosen ? hoursMarkup([chosen]) : `<p class="quiet-note">The studio is closed this day.</p>`;
+  return `<aside class="rail"><p class="index">Desk 01</p>${railRooms(room)}<p class="when-day">${escapeHtml(when)}</p><p class="seat-line">${escapeHtml(seatLine)}</p>${fill}<p class="legend"><span><i class="pip taken"></i> Taken</span><span><i class="pip"></i> Open</span></p></aside><div class="hours">${hours}</div>`;
 }
 
 function railRooms(room) {
@@ -258,7 +304,7 @@ function hoursMarkup(days) {
     head +
     days
       .map((day, index) => {
-        const banner = days.length > 1 ? `<p class="dayline">${escapeHtml(day.label)}</p>` : "";
+        const banner = days.length > 1 ? `<p class="dayline" id="day-${index}">${escapeHtml(day.label)}</p>` : "";
         return banner + day.slots.map((slot, slotIndex) => slotMarkup(slot, index + slotIndex)).join("");
       })
       .join("")
@@ -291,7 +337,9 @@ function groupDays(slots) {
   for (const slot of slots) {
     const key = dayKey(slot.starts_at);
     const last = groups[groups.length - 1];
-    if (!last || last.key !== key) groups.push({ key, label: dayLabel(slot.starts_at), slots: [slot] });
+    if (!last || last.key !== key) {
+      groups.push({ key, label: dayLabel(slot.starts_at), short: shortWeekday(slot.starts_at), slots: [slot] });
+    }
     else last.slots.push(slot);
   }
   return groups;
@@ -322,6 +370,10 @@ function dayLabel(iso) {
   }).format(new Date(iso));
 }
 
+function shortWeekday(iso) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Warsaw", weekday: "short" }).format(new Date(iso));
+}
+
 function dayKey(iso) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Warsaw",
@@ -331,7 +383,7 @@ function dayKey(iso) {
   }).format(new Date(iso));
 }
 
-function tomorrowWindow() {
+function warsawDate(offsetDays) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Warsaw",
     year: "numeric",
@@ -339,15 +391,78 @@ function tomorrowWindow() {
     day: "2-digit",
   }).formatToParts(new Date());
   const pick = (type) => Number(parts.find((part) => part.type === type).value);
-  const today = new Date(Date.UTC(pick("year"), pick("month") - 1, pick("day")));
-  today.setUTCDate(today.getUTCDate() + 1);
-  const year = today.getUTCFullYear();
-  const month = today.getUTCMonth() + 1;
-  const day = today.getUTCDate();
-  return {
-    from: zonedISO(year, month, day, 9, 0),
-    to: zonedISO(year, month, day, 17, 0),
-  };
+  const date = new Date(Date.UTC(pick("year"), pick("month") - 1, pick("day")));
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return date;
+}
+
+function weekPlan() {
+  return Array.from({ length: 9 }, (_, index) => {
+    const date = warsawDate(index + 1);
+    const dow = date.getUTCDay();
+    const span = dow === 0 ? [12, 15, 2] : dow === 6 ? [11, 15, 2] : [10, 16, 3];
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const pad = (value) => String(value).padStart(2, "0");
+    return {
+      key: `${year}-${pad(month)}-${pad(day)}`,
+      from: zonedISO(year, month, day, span[0], 0),
+      to: zonedISO(year, month, day, span[1], 0),
+      capacity: span[2],
+    };
+  });
+}
+
+function openDay() {
+  const days = groupDays(state.slots);
+  if (state.day && days.some((day) => day.key === state.day)) {
+    return days.find((day) => day.key === state.day);
+  }
+  if (!state.day && days[0]) state.day = days[0].key;
+  return days.find((day) => day.key === state.day) || null;
+}
+
+function labelForKey(key) {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function mountFidget() {
+  const root = document.querySelector("#fidget-days");
+  root.innerHTML = weekPlan()
+    .map((day) => {
+      const parts = day.key.split("-").map(Number);
+      const named = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+      const name = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" }).format(named);
+      return `<button type="button" class="daychip" data-key="${day.key}" aria-pressed="false"><span class="daychip-name">${name}</span><span class="daychip-num">${named.getUTCDate()}</span></button>`;
+    })
+    .join("");
+  root.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-key]");
+    if (!chip || chip.dataset.key === state.day) return;
+    state.day = chip.dataset.key;
+    render();
+  });
+}
+
+function paintFidget() {
+  const root = document.querySelector("#fidget-days");
+  const note = document.querySelector("#fidget-note");
+  const booked = new Set(groupDays(state.slots).map((day) => day.key));
+  root.querySelectorAll(".daychip").forEach((chip) => {
+    const on = chip.dataset.key === state.day;
+    chip.classList.toggle("is-on", on);
+    chip.classList.toggle("is-quiet", booked.size > 0 && !booked.has(chip.dataset.key));
+    chip.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const chosen = openDay();
+  note.textContent = chosen ? chosen.label : state.day ? "Closed this day." : "The book is clear.";
 }
 
 function zonedISO(year, month, day, hour, minute) {
