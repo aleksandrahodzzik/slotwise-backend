@@ -172,7 +172,18 @@ button, input { font: inherit; color: inherit; }
 
 .signature { margin-top: 34px; }
 
-.fidget { margin-top: 28px; }
+.fidget {
+  margin: 28px calc(50% - 50vw) 0;
+  padding: 18px calc(50vw - 50%) 20px;
+  background: rgba(178, 86, 26, 0.11);
+  border-top: 1px solid rgba(178, 86, 26, 0.22);
+  border-bottom: 1px solid rgba(178, 86, 26, 0.22);
+  border-radius: 0;
+}
+
+body { overflow-x: clip; }
+
+.fidget-kicker { color: #b2561a; }
 
 .fidget-head {
   display: flex;
